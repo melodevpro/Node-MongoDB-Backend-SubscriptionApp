@@ -68,5 +68,22 @@ const subscriptionSchema = new mongoose.Schema({
 
 // Calcular la fecha de renovacion:
 subscriptionSchema.pre('save', function (next) {
-    
+    if(!this.renewalDate) {
+        const renewalDate = {
+            daily: 1,
+            weekly: 7,
+            monthly: 30,
+            yearly: 365,
+        };
+
+        this.renewalDate = new Date(this.startDate);
+        this.renewalDate.setDate(this.renewalDate.getDate() + renewalDate[this.frequency]);
+    }
+
+    // Auto-update la fecha de expiracion
+    if(this.renewalDate < new Date()) {
+        this.status = 'expired';
+    }
+
+    next();
 })
