@@ -1,4 +1,3 @@
-
 import mongoose from "mongoose";
 
 const subscriptionSchema = new mongoose.Schema({
@@ -21,18 +20,18 @@ const subscriptionSchema = new mongoose.Schema({
     },
     frequency: {
         type: String,
-        enum: ['monthly', 'yearly'],
+        enum: ['daily', 'weekly', 'monthly', 'yearly'],
         default: 'monthly',
     },
     category: {
         type: String,
         enum: ['basic', 'pro', 'premium'],
         default: 'basic',
-        required: [true, 'La categoría es requerida'],
+        required: [true, 'La categoría es requerida'],
     },
     paymentMethod: {
         type: String,
-        required: [true, 'El método de pago es requerido'],
+        required: [true, 'El método de pago es requerido'],
         trim: true,
     },
     status: {
@@ -40,36 +39,37 @@ const subscriptionSchema = new mongoose.Schema({
         enum: ['active', 'cancelled', 'expired'],
         default: 'active',
     },
-    starDate: {
+    startDate: {
         type: Date,
-        required: true,
+        required: [true, 'La fecha de inicio es requerida'],
         validate: {
             validator: (value) => value <= new Date(),
-            message: 'Start date must be in the past',
+            message: 'La fecha de inicio debe ser en el pasado',
         }
     },
     renewalDate: {
         type: Date,
-        required: true,
+        // ❌ ya no es required
         validate: {
             validator: function (value) {
+                if (!value) return true; // se calcula en pre-save
                 return value > this.startDate;
             },
-            message: 'Renewal date must be after start date',
+            message: 'La fecha de renovación debe ser posterior a la de inicio',
         }
     },
     user: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        require: [true, 'El usuario es requerido'],
+        required: [true, 'El usuario es requerido'],
         index: true,
     }
 }, { timestamps: true });
 
-// Calcular la fecha de renovacion:
+// Middleware: calcular renewalDate y actualizar estado
 subscriptionSchema.pre('save', function (next) {
-    if(!this.renewalDate) {
-        const renewalDate = {
+    if (!this.renewalDate) {
+        const daysByFrequency = {
             daily: 1,
             weekly: 7,
             monthly: 30,
@@ -77,13 +77,16 @@ subscriptionSchema.pre('save', function (next) {
         };
 
         this.renewalDate = new Date(this.startDate);
-        this.renewalDate.setDate(this.renewalDate.getDate() + renewalDate[this.frequency]);
+        this.renewalDate.setDate(this.renewalDate.getDate() + daysByFrequency[this.frequency]);
     }
 
-    // Auto-update la fecha de expiracion
-    if(this.renewalDate < new Date()) {
+    if (this.renewalDate < new Date()) {
         this.status = 'expired';
     }
 
     next();
-})
+});
+
+const Subscription = mongoose.model("Subscription", subscriptionSchema);
+
+export default Subscription;
