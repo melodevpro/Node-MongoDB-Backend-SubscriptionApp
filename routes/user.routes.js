@@ -1,17 +1,19 @@
 
 import { Router } from "express";
+import { getUser, getUsers } from "../controllers/user.controller.js";
+import authorize  from "../middlewares/auth.middleware.js";
 
 const userRouter = Router();
 
 // Rutas de Usuarios
-userRouter.get('/users', (req, res) => res.send({ title: 'Listado de usuarios GET' }));
+userRouter.get('/', getUsers);
 
-userRouter.get('/users/:id', (req, res) => res.send({ title: 'Detalle de un usuario GET' }));
+userRouter.get('/:id', authorize, getUser);
 
-userRouter.post('/users', (req, res) => res.send ({ title: 'Crear un usuario CREATE' }));
+userRouter.post('/', (req, res) => res.send ({ title: 'Crear un usuario CREATE' }));
 
-userRouter.put('/users/:id', (req, res) => res.send({ title: 'Actualizar un usuario PUT' }));
+userRouter.put('/:id', (req, res) => res.send({ title: 'Actualizar un usuario PUT' }));
 
-userRouter.delete('/users/:id', (req, res) => res.send({ title: 'Eliminar un usuario DELETE' }));
+userRouter.delete('/:id', (req, res) => res.send({ title: 'Eliminar un usuario DELETE' }));
 
 export default userRouter;
