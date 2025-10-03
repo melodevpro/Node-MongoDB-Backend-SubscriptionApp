@@ -15,3 +15,8 @@ export const {
     QSTASH_TOKEN, QSTASH_URL
 } = process.env;
 
+export const EMAIL_PASSWORD = process.env.SMTP_PASS;
+export const EMAIL_USER = process.env.SMTP_USER;
+export const SMTP_HOST = process.env.SMTP_HOST;
+export const SMTP_PORT = process.env.SMTP_PORT;
+
