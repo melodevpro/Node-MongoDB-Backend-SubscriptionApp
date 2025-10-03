@@ -1,4 +1,9 @@
 import { config } from 'dotenv';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+export const SERVER_URL = process.env.SERVER_URL || 'http://localhost:5500';
 
 config ({ path: `.env.${process.env.NODE_ENV || 'development'}.local` });
 

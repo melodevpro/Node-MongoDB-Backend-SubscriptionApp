@@ -1,46 +1,44 @@
-import Subscription from "../models/subscription.model.js";
+import Subscription from '../models/subscription.model.js'
+import { workflowClient } from '../config/upstash.js'
+import { SERVER_URL } from '../config/env.js'
 
-// Crear suscripción
 export const createSubscription = async (req, res, next) => {
   try {
-    // Guardar en base de datos
-    const newSub = new Subscription(req.body);
-    await newSub.save();
+    const subscription = await Subscription.create({
+      ...req.body,
+      user: req.user._id,
+    });
 
-    // Si quieres llamar a un workflow externo
-    if (typeof workflowClient !== "undefined") {
-      await workflowClient.trigger({
-        url: `${SERVER_URL}`,
-        body: req.body, // 👈 le pasamos el body
-        headers: { "Content-Type": "application/json" },
-        workflowRunId: Date.now().toString(),
-        retries: 3
-      });
-    }
+    const { workflowRunId } = await workflowClient.trigger({
+      url: `${SERVER_URL}/api/v1/workflows/subscription/reminder`,
+      body: {
+        subscriptionId: subscription.id,
+      },
+      headers: {
+        'content-type': 'application/json',
+      },
+      retries: 0,
+    })
 
-    res.status(201).json(newSub);
-  } catch (error) {
-    res
-      .status(400)
-      .json({ message: "Error al crear suscripción", error: error.message });
-    next(error);
+    res.status(201).json({ success: true, data: { subscription, workflowRunId } });
+  } catch (e) {
+    next(e);
   }
-};
+}
 
-// Obtener suscripciones de un usuario
 export const getUserSubscriptions = async (req, res, next) => {
   try {
-    // Solo el dueño puede ver sus suscripciones
-    if (req.user.id !== req.params.id) {
-      return res.status(401).json({
-        success: false,
-        error: "No tienes permiso para ver estas suscripciones"
-      });
+    // Check if the user is the same as the one in the token
+    if(req.user.id !== req.params.id) {
+      const error = new Error('You are not the owner of this account');
+      error.status = 401;
+      throw error;
     }
 
     const subscriptions = await Subscription.find({ user: req.params.id });
+
     res.status(200).json({ success: true, data: subscriptions });
-  } catch (error) {
-    next(error);
+  } catch (e) {
+    next(e);
   }
-};
+}
